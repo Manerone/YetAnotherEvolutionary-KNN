@@ -37,21 +37,23 @@ class EvolutiveKNN:
         max_generations: Stopping criteria, maximum number of generations.
         max_accuracy: Stopping criteria, if an idividual have an accuracy bigger than max_accuracy the execution stops.
         max_k: Maximum number of neighbors, if no max_k is provided the maximum possible is used.
-        max_weight: Maximum possible weight.
+        max_neighbor_weight: Maximum possible weight for neighbors.
+        max_feature_weight: Maximum possible weight for features.
         elitism_rate: Elitism rate, percentage of best individuals that will be passed to another generation.
         tournament_size: The percentage of the non-elite population that will be selected at each tournament.
     """
-    def train(self, population_size=50, mutation_rate=0.02, max_generations=50, max_accuracy=1.0, max_k=None, max_weight=10, elitism_rate=0.0, tournament_size=0.25):
+    def train(self, population_size=50, mutation_rate=0.02, max_generations=50, max_accuracy=1.0, max_k=None, max_neighbors_weight=10, max_features_weight=10, elitism_rate=0.0, tournament_size=0.25):
         self.population_size = population_size
         self.mutation_rate = mutation_rate
         self.max_generations = max_generations
         self.max_accuracy = max_accuracy
         self.max_k = max_k
-        self.max_weight = max_weight
+        self.max_neighbors_weight = max_neighbors_weight
+        self.max_features_weight = max_features_weight
         self.elitism_rate = elitism_rate
         self.elitism_real_value = int(self.elitism_rate * self.population_size)
         self.tournament_size = tournament_size
-        self.global_best = Individual(1, [1] * self._features_size)
+        self.global_best = Individual(1, [1], [1] * self._features_size)
         self.hall_of_fame = []
         self.best_of_each_generation = []
         self._train()
@@ -93,11 +95,11 @@ class EvolutiveKNN:
         parent2 = self._tournament(population)
         kid = self._crossover(parent1, parent2)
         # print 'CROSSOVER'
-        # print parent1.k, parent1.weights
+        # print parent1.k, parent1.neighbors_weights, parent1.features_weights
         # print '-------------'
-        # print parent2.k, parent2.weights
+        # print parent2.k, parent2.neighbors_weights, parent2.features_weights
         # print '--------------'
-        # print kid.k, kid.weights
+        # print kid.k, kid.neighbors_weights, kid.features_weights
         # print '=--------------='
         return kid
 
@@ -110,18 +112,35 @@ class EvolutiveKNN:
         return population[best]
 
     def _crossover(self, parent1, parent2):
-        k1 = parent1.k
-        k2 = parent2.k
-        k = self._random_between(k1, k2)
+        k = self._random_between(parent1.k, parent2.k)
+        return Individual(
+            k,
+            self._neighbors_crossover(k, parent1, parent2),
+            self._features_crossover(parent1, parent2))
+
+    def _features_crossover(self, parent1, parent2):
         colaboration1 = int(np.floor(self._features_size/2.0))
         colaboration2 = int(np.ceil(self._features_size/2.0))
-        weights_p1 = parent1.weights[:colaboration1]
-        weights_p2 = parent2.weights[colaboration2:]
+        weights_p1 = parent1.features_weights[:colaboration1]
+        weights_p2 = parent2.features_weights[colaboration2:]
         weights = weights_p1 + weights_p2
         mutate = random.uniform(0, 1)
         if mutate < self.mutation_rate:
-            weights = self._mutate_weights(weights)
-        return Individual(k, weights)
+            weights = self._mutate_weights(weights, self.max_features_weight)
+        return weights
+
+    def _neighbors_crossover(self, k, parent1, parent2):
+        k1 = parent1.k
+        k2 = parent2.k
+        colaboration1 = int(np.floor(k * (k1/float(k1 + k2))))
+        colaboration2 = int(np.ceil(k * (k2/float(k1 + k2))))
+        weights_p1 = random.sample(parent1.neighbors_weights, colaboration1)
+        weights_p2 = random.sample(parent2.neighbors_weights, colaboration2)
+        weights = weights_p1 + weights_p2
+        mutate = random.uniform(0, 1)
+        if mutate < self.mutation_rate:
+            weights = self._mutate_weights(weights, self.max_neighbors_weight)
+        return weights
 
     def _random_between(self, number1, number2):
         if random.randint(0, 1) == 0:
@@ -130,10 +149,10 @@ class EvolutiveKNN:
             result = number2
         return result
 
-    def _mutate_weights(self, weights):
+    def _mutate_weights(self, weights, maximum):
         mutated = weights
         index = random.randint(0, len(weights) - 1)
-        mutated[index] = random.randint(0, self.max_weight)
+        mutated[index] = random.randint(0, maximum)
         return mutated
 
     def _get_elite(self, population):
@@ -148,14 +167,17 @@ class EvolutiveKNN:
         population = []
         for _ in xrange(self.population_size):
             k = random.randint(1, max_k)
-            weights = [
-                random.choice(range(self.max_weight)) for _ in xrange(self._features_size)
+            neighbors_weights = [
+                random.choice(range(self.max_neighbors_weight)) for _ in xrange(k)
             ]
-            population.append(Individual(k, weights))
+            features_weights = [
+                random.choice(range(self.max_features_weight)) for _ in xrange(self._features_size)
+            ]
+            population.append(Individual(k, neighbors_weights, features_weights))
         return population
 
     def _calculate_fitness_of_population(self, population, generation):
-        population_best = Individual(1, [1])
+        population_best = Individual(1, [1], [1] * self._features_size)
         for element in population:
             self._calculate_fitness_of_individual(element)
             if population_best.fitness < element.fitness:
@@ -171,8 +193,12 @@ class EvolutiveKNN:
         self.global_best = element
 
     def _calculate_fitness_of_individual(self, element):
-        w = element.weights
-        kneigh = KNeighborsClassifier(n_neighbors=element.k)
+
+        def _element_weights(distances):
+            return element.neighbors_weights
+
+        w = element.features_weights
+        kneigh = KNeighborsClassifier(n_neighbors=element.k, weights=_element_weights)
         kneigh.fit(self.training_examples * w, self.training_labels)
         element.fitness = kneigh.score(
             self.test_examples * w, self.test_labels
@@ -185,7 +211,7 @@ class EvolutiveKNN:
 
     def _create_test(self, tr_examples, tr_labels, test_size):
         self.training_examples = []
-        self.training_labels = [] 
+        self.training_labels = []
         self.test_examples = []
         self.test_labels = []
 
