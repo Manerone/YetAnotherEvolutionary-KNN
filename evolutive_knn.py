@@ -61,11 +61,11 @@ class EvolutiveKNN:
     def _train(self):
         population = self._start_population()
         generations = 0
-        print generations
+        # print generations
         self._calculate_fitness_of_population(population, generations)
         while not self._should_stop(generations):
             generations += 1
-            print generations
+            # print generations
             population = self._create_new_population(population)
             self._calculate_fitness_of_population(population, generations)
 
@@ -119,8 +119,8 @@ class EvolutiveKNN:
             self._features_crossover(parent1, parent2))
 
     def _features_crossover(self, parent1, parent2):
-        colaboration1 = int(np.floor(self._features_size/2.0))
-        colaboration2 = int(np.ceil(self._features_size/2.0))
+        colaboration1 = int(self._features_size/2.0)
+        colaboration2 = int(self._features_size/2.0)
         weights_p1 = parent1.features_weights[:colaboration1]
         weights_p2 = parent2.features_weights[colaboration2:]
         weights = weights_p1 + weights_p2
@@ -199,7 +199,12 @@ class EvolutiveKNN:
 
         w = element.features_weights
         kneigh = KNeighborsClassifier(n_neighbors=element.k, weights=_element_weights)
-        kneigh.fit(self.training_examples * w, self.training_labels)
+        try:
+            kneigh.fit(self.training_examples * w, self.training_labels)
+        except:
+            print element.k
+            print element.neighbors_weights
+            print element.features_weights
         element.fitness = kneigh.score(
             self.test_examples * w, self.test_labels
         )
