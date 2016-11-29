@@ -5,7 +5,7 @@ import json
 import os
 import sys
 
-NUMBER_OF_EXECUTIONS = 1
+NUMBER_OF_EXECUTIONS = 30
 
 
 def datasets():
