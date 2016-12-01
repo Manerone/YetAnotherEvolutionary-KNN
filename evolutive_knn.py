@@ -94,13 +94,13 @@ class EvolutiveKNN:
         parent1 = self._tournament(population)
         parent2 = self._tournament(population)
         kid = self._crossover(parent1, parent2)
-        # print 'CROSSOVER'
-        # print parent1.k, parent1.neighbors_weights, parent1.features_weights
-        # print '-------------'
-        # print parent2.k, parent2.neighbors_weights, parent2.features_weights
-        # print '--------------'
-        # print kid.k, kid.neighbors_weights, kid.features_weights
-        # print '=--------------='
+        print 'CROSSOVER'
+        print parent1.k, parent1.neighbors_weights, parent1.features_weights
+        print '-------------'
+        print parent2.k, parent2.neighbors_weights, parent2.features_weights
+        print '--------------'
+        print kid.k, kid.neighbors_weights, kid.features_weights
+        print '=--------------='
         return kid
 
     def _tournament(self, population):
@@ -133,7 +133,7 @@ class EvolutiveKNN:
         k1 = parent1.k
         k2 = parent2.k
         colaboration1 = int(np.floor(k * (k1/float(k1 + k2))))
-        colaboration2 = int(np.ceil(k * (k2/float(k1 + k2))))
+        colaboration2 = k - colaboration1
         weights_p1 = random.sample(parent1.neighbors_weights, colaboration1)
         weights_p2 = random.sample(parent2.neighbors_weights, colaboration2)
         weights = weights_p1 + weights_p2
