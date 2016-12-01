@@ -21,7 +21,7 @@ class EvolutiveKNN:
     Usage:
         classifier = EvolutiveKNN([[1, 2, 3, 1], [1, 4, 2, 8], [1, 1, 2, 1]], [0, 1, 0])
     """
-    def __init__(self, training_examples, training_labels, ts_size = 0.5):
+    def __init__(self, training_examples, training_labels, ts_size = 0.33):
         test_size = int(ts_size * len(training_labels))
         self._features_size = len(training_examples[0])
         self._create_test(
