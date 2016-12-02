@@ -42,7 +42,7 @@ class EvolutiveKNN:
         elitism_rate: Elitism rate, percentage of best individuals that will be passed to another generation.
         tournament_size: The percentage of the non-elite population that will be selected at each tournament.
     """
-    def train(self, population_size=50, mutation_rate=0.02, max_generations=50, max_accuracy=1.0, max_k=None, max_neighbors_weight=10, max_features_weight=10, elitism_rate=0.0, tournament_size=0.25):
+    def train(self, population_size=50, mutation_rate=0.02, max_generations=50, max_accuracy=1.0, max_k=None, max_neighbors_weight=10, max_features_weight=10, elitism_rate=0.02, tournament_size=0.25):
         self.population_size = population_size
         self.mutation_rate = mutation_rate
         self.max_generations = max_generations
